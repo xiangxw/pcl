@@ -72,7 +72,7 @@ namespace pcl
 
       /** \brief Constructor for SLICSuperpixelSegmentation. */
       SLICSuperpixelSegmentation ()
-        : labs_ (), num_superpixels_ (500), perturbseeds_ (true)
+        : labs_ (), num_superpixels_ (500), refine_seeds_ (true)
       {
       }
 
@@ -90,6 +90,29 @@ namespace pcl
       {
         num_superpixels_ = superpixels;
       }
+      /** \brief Get number of superpixels. */
+      inline unsigned int
+      getNumberOfSuperpixels () const
+      {
+        return (num_superpixels_);
+      }
+
+      /** \brief Set whether or not to refine seeds.
+        * \sa refine_seeds_
+        */
+      inline void
+      setRefineSeeds (bool refine_seeds)
+      {
+        refine_seeds_ = refine_seeds;
+      }
+      /** \brief Get whether or not to refine seeds.
+        * \sa refine_seeds_
+        */
+      inline bool
+      getRefineSeeds () const
+      {
+        return (refine_seeds_);
+      }
 
       /** \brief Perform SLIC superpixel segmentation.
         * \param[out] labels a PointCloud of labels: each superpixel will have a unique id
@@ -104,6 +127,34 @@ namespace pcl
       {
         double l, a, b;
       };
+
+      /** \brief Seeding.
+        * \param[out] seeds index of seed points
+        */
+      void
+      seeding (std::vector<int> &seeds) const;
+
+      /** \brief Refine seeds. 
+        * \param[out] seeds index of seed points
+        */
+      void
+      refineSeeds (std::vector<int> &seeds) const;
+
+      /** \brief Interative cluster.
+        * \param[in] seeds index of seed points
+        * \param[out] labels a PointCloud of labels: each superpixel will have a unique id
+        * \param[out] label_indices a vector of PointIndices corresponding to each label
+        */
+      void
+      interativeCluster (const std::vector<int> &seeds, PointCloudL &labels, std::vector<pcl::PointIndices> &label_indices) const;
+
+      /** \brief Enfore connectivity.
+        * \param[in] seeds index of seed points
+        * \param[out] labels a PointCloud of labels: each superpixel will have a unique id
+        * \param[out] label_indices a vector of PointIndices corresponding to each label
+        */
+      void
+      enforeConnectivity (const std::vector<int> &seeds, PointCloudL &labels, std::vector<pcl::PointIndices> &label_indices) const;
 
       /** \brief Values of CIELAB color space for all pixels. */
       std::vector<CIELab> labs_;

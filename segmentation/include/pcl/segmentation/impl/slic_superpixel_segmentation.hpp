@@ -47,6 +47,7 @@ template <typename PointT, typename PointLT> void
 pcl::SLICSuperpixelSegmentation<PointT, PointLT>::segment (PointCloudL &labels, std::vector<pcl::PointIndices> &label_indices) const
 {
   Lab lab;
+  std::vector<int> seeds;
 
   // Init compute
   if (!initCompute ())
@@ -69,10 +70,51 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::segment (PointCloudL &labels, 
   }
 
   // Seeding
-  seeding ();
+  seeding (seeds);
+
+  // Refine seeds
+  if (refine_seeds_)
+  {
+    refineSeeds (seeds);
+  }
+
+  // Interative clustering
+  interativeCluster (seeds, labels, label_indices);
+
+  // Enfore connectivity
+  enforeConnectivity (seeds, labels, label_indices);
 
   // Deinit compute
   deinitCompute ();
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointT, typename PointLT> void
+pcl::SLICSuperpixelSegmentation<PointT, PointLT>::seeding (std::vector<int> &seeds) const
+{
+
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointT, typename PointLT> void
+pcl::SLICSuperpixelSegmentation<PointT, PointLT>::refineSeeds (std::vector<int> &seeds) const
+{
+
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointT, typename PointLT> void
+pcl::SLICSuperpixelSegmentation<PointT, PointLT>::interativeCluster (const std::vector<int> &seeds,
+                                                                     ) const
+{
+
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointT, typename PointLT> void
+pcl::SLICSuperpixelSegmentation<PointT, PointLT>::refineSeeds (std::vector<int> &seeds) const
+{
+
 }
 
 #define PCL_INSTANTIATE_SLICSuperpixelSegmentation(T,LT) template class PCL_EXPORTS pcl::SLICSLICSuperpixelSegmentation<T,LT>;
