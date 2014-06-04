@@ -115,6 +115,12 @@
   (pcl::PointWithScale)       \
   (pcl::PointSurfel)
 
+// Define all point types with XYZ and RGB
+#define PCL_XYZRGB_POINT_TYPES   \
+  (pcl::PointXYZRGBA)            \
+  (pcl::PointXYZRGB)             \
+  (pcl::PointXYZRGBL)
+
 // Define all point types with XYZ and label
 #define PCL_XYZL_POINT_TYPES  \
   (pcl::PointXYZL)            \
