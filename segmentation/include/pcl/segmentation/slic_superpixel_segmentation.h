@@ -72,7 +72,7 @@ namespace pcl
 
       /** \brief Constructor for SLICSuperpixelSegmentation. */
       SLICSuperpixelSegmentation ()
-        : labs_ (), num_superpixels_ (500), refine_seeds_ (true)
+        : labs_ (), num_superpixels_ (500), refine_seeds_ (true), max_iteration_ (10), enfore_connectivity_ (true)
       {
       }
 
@@ -84,13 +84,16 @@ namespace pcl
 
       /** \brief Set number of superpixels to segment.
         * \param[in] superpixels number of superpixels
+        * \sa num_superpixels_
         */
       inline void
       setNumberOfSuperpixels (unsigned int superpixels)
       {
         num_superpixels_ = superpixels;
       }
-      /** \brief Get number of superpixels. */
+      /** \brief Get number of superpixels.
+        * \sa num_superpixels_
+        */
       inline unsigned int
       getNumberOfSuperpixels () const
       {
@@ -114,6 +117,40 @@ namespace pcl
         return (refine_seeds_);
       }
 
+      /** \brief Set maximum iteration count.
+        * \sa max_iteration_
+        */
+      inline void
+      setMaximumIteration (unsigned int max_iteration)
+      {
+        max_iteration_ = max_iteration;
+      }
+      /** \brief Get maximum iteration count.
+        * \sa max_iteration_
+        */
+      inline unsigned int
+      getMaximumIteration () const
+      {
+        return (max_iteration_);
+      }
+
+      /** \brief Set whether or not to enfore connectivity.
+        * \sa enfore_connectivity_
+        */
+      inline void
+      setEnforceConnectivity (bool enfore_connectivity)
+      {
+        enfore_connectivity_ = enfore_connectivity;
+      }
+      /** \brief Get whether or not to enfore connectivity.
+        * \sa enfore_connectivity_
+        */
+      inline bool
+      getEnforceConnectivity () const
+      {
+        return enfore_connectivity_;
+      }
+
       /** \brief Perform SLIC superpixel segmentation.
         * \param[out] labels a PointCloud of labels: each superpixel will have a unique id
         * \param[out] label_indices a vector of PointIndices corresponding to each label
@@ -131,34 +168,46 @@ namespace pcl
       /** \brief Seeding.
         * \param[out] seeds index of seed points
         */
-      void
+      virtual void
       seeding (std::vector<int> &seeds) const;
 
       /** \brief Refine seeds. 
         * \param[out] seeds index of seed points
         */
-      void
+      virtual void
       refineSeeds (std::vector<int> &seeds) const;
 
-      /** \brief Interative cluster.
+      /** \brief Iterative cluster.
         * \param[in] seeds index of seed points
         * \param[out] labels a PointCloud of labels: each superpixel will have a unique id
         * \param[out] label_indices a vector of PointIndices corresponding to each label
         */
-      void
-      interativeCluster (const std::vector<int> &seeds, PointCloudL &labels, std::vector<pcl::PointIndices> &label_indices) const;
+      virtual void
+      iterativeCluster (const std::vector<int> &seeds, PointCloudL &labels, std::vector<pcl::PointIndices> &label_indices) const;
 
       /** \brief Enfore connectivity.
         * \param[in] seeds index of seed points
         * \param[out] labels a PointCloud of labels: each superpixel will have a unique id
         * \param[out] label_indices a vector of PointIndices corresponding to each label
         */
-      void
+      virtual void
       enforeConnectivity (const std::vector<int> &seeds, PointCloudL &labels, std::vector<pcl::PointIndices> &label_indices) const;
+
+      /** \brief Calculate distance of two points.
+        * \param[in] index1 index of point 1
+        * \param[in] index2 index of point 2
+        * \param[in] mean_lab mean distance of lab color space
+        * \param[in] mean_xyz mean distance of spatial space
+        * \note The two input points MUST be finite.
+        */
+      virtual double
+      calculateDistance (int index1, int index2, double mean_lab, double mean_xyz) const;
 
       /** \brief Values of CIELAB color space for all pixels. */
       std::vector<CIELab> labs_;
-      /** \brief Number of superpixels to segment. */
+      /** \brief Number of superpixels to segment.
+        * \note number of segmented superpixels may not be exactly equal to this value
+        */
       unsigned int num_superpixels_;
       /** \brief Refine seeds or not.
         * If true, seeds will be moved to the lowest gradient position in a 3 x 3 neighborhood.
@@ -167,6 +216,20 @@ namespace pcl
         * Default value is true.
         */
       bool refine_seeds_;
+      /** \brief Maximum iteration count. Default value is 10. */
+      unsigned int max_iteration_;
+      /** \brief Whether or not to enfore connectivity.
+        * If true, we will enforce connectivity by re-assigning disjoint pixels to nearby superpixels. For more information please see the paper.
+        * Default value is true.
+        */
+      bool enfore_connectivity_;
+
+    private:
+      /** \brief Calculate gradient of a point with 4-connected neighborhoods.
+        * \param[in] index index of the point 
+        */
+      double
+      calculateGradient (int index) const;
   };
 }
 
