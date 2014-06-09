@@ -82,8 +82,6 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::segment (PointCloudL &labels, 
 template <typename PointT, typename PointLT>  bool
 pcl::SLICSuperpixelSegmentation<PointT, PointLT>::initCompute ()
 {
-  double tmp;
-
   if (!pcl::PCLBase<PointT>::initCompute ())
   {
     return (false);
@@ -105,29 +103,25 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::initCompute ()
   }
 
   // Calculate step and offset
+  double tmp;
   tmp = sqrt (static_cast<double> (input_->size ()) / static_cast<double> (num_superpixels_));
   offset_ = static_cast<int> (tmp / 2.0);
   step_ = offset_ + offset_ + 1;
 
-  // Distance cache
-  double *cache;
+  // Calculate mean distance of lab color space and xyz spatial space
   int rows = step_ + step_ + 1;
   int cols = rows;
-  int size = rows * cols;
   size_t index;
   size_t x;
   double sum;
   size_t count;
 
-  lab_dist_.resize (input_->size ());
   sum = 0.0;
   count = 0;
-  for (size_t i = 0; i < lab_dist_.size (); ++i)
+  for (size_t i = 0; i < input_->size (); ++i)
   {
-    cache = new double[size];
-    lab_dist_[i] = cache;
-
     x = i % input_->width;
+    // For each point, calculate distance with points within a 2*step_ * 2*step_ sized rect
     for (int row = 0; row < rows; ++row)
     {
       index = i + (row - step_) * input_->width - x;
@@ -135,27 +129,21 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::initCompute ()
       {
         if (index >= 0 && index < input_->size ())
         {
-          tmp = calculateColorDistance (i, index);
-          *cache = tmp;
-          sum += tmp;
+          sum += calculateColorDistance (i, index);
           ++count;
         }
-        ++cache;
         ++index;
       }
     }
   }
   mean_lab_dist_ = sum / count;
 
-  xyz_dist_.resize (input_->size ());
   sum = 0.0;
   count = 0;
-  for (size_t i = 0; i < xyz_dist_.size (); ++i)
+  for (size_t i = 0; i < input_->size (); ++i)
   {
-    cache = new double[size];
-    xyz_dist_[i] = cache;
-
     x = i % input_->width;
+    // For each point, calculate distance with points within a 2*step_ * 2*step_ sized rect
     for (int row = 0; row < rows; ++row)
     {
       index = i + (row - step_) * input_->width - x;
@@ -163,12 +151,9 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::initCompute ()
       {
         if (index >= 0 && index < input_->size () && pcl::isFinite (input_->points[i]))
         {
-          tmp = calculateSpatialDistance (i, index);
-          *cache = tmp;
-          sum += tmp;
+          sum += calculateSpatialDistance (i, index);
           ++count;
         }
-        ++cache;
         ++index;
       }
     }
@@ -252,15 +237,43 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::iterativeCluster (const std::v
                                                                     PointCloudL &labels,
                                                                     std::vector<pcl::PointIndices> &label_indices)
 {
+  std::vector<double> dist_vec ( // Distance to the closest seed
+                                input_->size (), std::numeric_limits<double>::max ());
+  int rows = step_ + step_ + 1;
+  int cols = rows;
+  size_t index, count;
+  size_t x;
+  double tmp;
+
   labels.resize (input_->size ());
   label_indices.resize (seeds.size ());
-  (void)seeds;
-  (void)labels;
-  (void)label_indices;
 
-  for (int i = 0; i < max_iteration_; ++i)
+  for (unsigned int i = 0; i < max_iteration_; ++i)
   {
-
+    // Find the closest seed and calculate distance to the seed
+    for (size_t i = 0; i < seeds.size (); ++i)
+    {
+      x = seeds[i] % input_->width;
+      count = 0;
+      // For each point, calculate distance with points within a 2*step_ * 2*step_ sized rect
+      for (int row = 0; row < rows; ++row)
+      {
+        index = seeds[i] + (row - step_) * input_->width - x;
+        for (int col = 0; col < cols; ++col)
+        {
+          if (index >= 0 && index < input_->size ())
+          {
+            tmp = calculateDistance (seeds[i], index);
+            if (dist_vec[index] > tmp)
+            {
+              dist_vec[index] = tmp;
+            }
+          }
+          ++index;
+          ++count;
+        }
+      }
+    }
   }
 }
 

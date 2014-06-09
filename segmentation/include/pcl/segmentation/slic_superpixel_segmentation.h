@@ -73,7 +73,7 @@ namespace pcl
       /** \brief Constructor for SLICSuperpixelSegmentation. */
       SLICSuperpixelSegmentation ()
         : num_superpixels_ (500), refine_seeds_ (true), max_iteration_ (10), enfore_connectivity_ (true)
-        , labs_ (), lab_dist_ (), xyz_dist_ (), mean_lab_dist_ (), mean_xyz_dist_ (), step_ (), offset_ ()
+        , labs_ (), mean_lab_dist_ (), mean_xyz_dist_ (), step_ (), offset_ ()
       {
       }
 
@@ -246,14 +246,6 @@ namespace pcl
 
       /** \brief Values of Lab color space for all pixels. */
       std::vector<Lab> labs_;
-      /** \brief Distance cache of lab color space.
-        * Every point has a 2*step_ * 2*step_ sized distance cache.
-        */
-      std::vector<double *> lab_dist_;
-      /** brief Distance cache of xyz spatial space.
-        * Every point has a 2*step_ * 2*step_ sized distance cache.
-        */
-      std::vector<double *> xyz_dist_;
       /** Mean lab color distance. */
       double mean_lab_dist_;
       /** Mean xyz spatial distance. */
