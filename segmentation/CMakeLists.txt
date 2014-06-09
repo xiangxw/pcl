@@ -3,8 +3,16 @@ set(SUBSYS_DESC "Point cloud segmentation library")
 set(SUBSYS_DEPS common geometry search sample_consensus kdtree octree features filters ml)
 
 set(build TRUE)
+if(ANDROID AND VTK_FOUND)
+    set(build FALSE)
+    message("VTK was found, but cannot be compiled for Android. Please use VES instead.")
+endif()
 PCL_SUBSYS_OPTION(build "${SUBSYS_NAME}" "${SUBSYS_DESC}" ON)
-PCL_SUBSYS_DEPEND(build "${SUBSYS_NAME}" DEPS ${SUBSYS_DEPS})
+if(VTK_FOUND)
+    PCL_SUBSYS_DEPEND(build "${SUBSYS_NAME}" DEPS ${SUBSYS_DEPS} EXT_DEPS vtk)
+else()
+    PCL_SUBSYS_DEPEND(build "${SUBSYS_NAME}" DEPS ${SUBSYS_DEPS})
+endif()
 
 PCL_ADD_DOC("${SUBSYS_NAME}")
 
@@ -33,6 +41,11 @@ if(build)
     if(Boost_MAJOR_VERSION GREATER 1 OR Boost_MINOR_VERSION GREATER 43)
     list(APPEND srcs
         src/min_cut_segmentation.cpp
+       )
+    endif()
+    if(VTK_FOUND)
+    list(APPEND srcs
+        src/slic_superpixel_segmentation.cpp
        )
     endif()
 
@@ -80,6 +93,11 @@ if(build)
         "include/pcl/${SUBSYS_NAME}/random_walker.h"
        )
     endif()
+    if(VTK_FOUND)
+    list(APPEND incs
+      "include/pcl/${SUBSYS_NAME}/slic_superpixel_segmentation.h"
+       )
+    endif()
 
     set(impl_incs 
         "include/pcl/${SUBSYS_NAME}/impl/extract_clusters.hpp"
@@ -114,11 +132,23 @@ if(build)
         "include/pcl/${SUBSYS_NAME}/impl/random_walker.hpp"
        )
     endif()
+    if(VTK_FOUND)
+    list(APPEND impl_incs
+      "include/pcl/${SUBSYS_NAME}/impl/slic_superpixel_segmentation.hpp"
+       )
+    endif()
 
     set(LIB_NAME "pcl_${SUBSYS_NAME}")
+    if(VTK_FOUND)
+        set(VTK_USE_FILE "${VTK_USE_FILE}" CACHE INTERNAL "VTK_USE_FILE")
+        include("${VTK_USE_FILE}")
+    endif()
     include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
     PCL_ADD_LIBRARY("${LIB_NAME}" "${SUBSYS_NAME}" ${srcs} ${incs} ${impl_incs})
     target_link_libraries("${LIB_NAME}" pcl_search pcl_sample_consensus pcl_filters pcl_ml pcl_features)
+    if(VTK_FOUND)
+        target_link_libraries("${LIB_NAME}" vtkCommon)
+    endif()
     PCL_MAKE_PKGCONFIG("${LIB_NAME}" "${SUBSYS_NAME}" "${SUBSYS_DESC}" "${SUBSYS_DEPS}" "" "" "" "")
 
     # Install include files
