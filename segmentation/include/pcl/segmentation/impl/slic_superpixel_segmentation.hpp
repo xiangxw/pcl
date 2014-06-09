@@ -44,28 +44,15 @@
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointT, typename PointLT> void
-pcl::SLICSuperpixelSegmentation<PointT, PointLT>::segment (PointCloudL &labels, std::vector<pcl::PointIndices> &label_indices) const
+pcl::SLICSuperpixelSegmentation<PointT, PointLT>::segment (PointCloudL &labels, std::vector<pcl::PointIndices> &label_indices)
 {
   std::vector<int> seeds;
 
-  // Init compute
+  // Initialize compute
   if (!initCompute ())
   {
-    PCL_ERROR ("[segment] Input point cloud not valid!\n");
+    PCL_ERROR ("[segment] Initialize compute failed!\n");
     return;
-  }
-  if (input_->height == 1)
-  {
-    PCL_ERROR ("[segment] Input point cloud should be organized!\n");
-    return;
-  }
-
-  // Convert RGB to Lab color space
-  labs_.resize (input_->size ());
-  for (size_t i = 0; i < input_->size (); ++i)
-  {
-    vtkMath::RGBToLab (input_[i].r, input_[i].g, input_[i].b,
-                       &(labs_[i].l), &(labs_[i].a), &(labs_[i].b));
   }
 
   // Seeding
@@ -91,32 +78,124 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::segment (PointCloudL &labels, 
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-template <typename PointT, typename PointLT> void
-pcl::SLICSuperpixelSegmentation<PointT, PointLT>::seeding (std::vector<int> &seeds) const
+template <typename PointT, typename PointLT>  bool
+pcl::SLICSuperpixelSegmentation<PointT, PointLT>::initCompute ()
 {
-  int step;
-  int offset_x, offset_y;
-  int row, col;
-  int x, y;
   double tmp;
 
+  if (!pcl::PCLBase<PointT>::initCompute ())
+  {
+    return (false);
+  }
+
+  // Input point cloud should be organized
+  if (input_->height == 1)
+  {
+    PCL_ERROR ("[initCompute] Input point cloud should be organized!\n");
+    return (false);
+  }
+
+  // Convert RGB to Lab color space
+  labs_.resize (input_->size ());
+  for (size_t i = 0; i < input_->size (); ++i)
+  {
+    vtkMath::RGBToLab (input_[i].r, input_[i].g, input_[i].b,
+                       &(labs_[i].l), &(labs_[i].a), &(labs_[i].b));
+  }
+
   // Calculate step and offset
-  tmp = sqrt (static_cast<double> (input_->size ()) / static_cast<double> (num_superpixels));
-  step = static_cast<int> (tmp);
-  offset_x = offset_y = static_cast<int> (tmp / 2);
+  tmp = sqrt (static_cast<double> (input_->size ()) / static_cast<double> (num_superpixels_));
+  offset_ = static_cast<int> (tmp / 2.0);
+  step_ = offset_ + offset_ + 1;
+
+  // Distance cache
+  double *cache;
+  int rows = step_ + step_ + 1;
+  int cols = rows;
+  int size = rows * cols;
+  size_t index;
+  size_t x;
+  double sum;
+  size_t count;
+
+  lab_dist_.resize (input_->size ());
+  sum = 0.0;
+  count = 0;
+  for (size_t i = 0; i < lab_dist_.size (); ++i)
+  {
+    cache = new double[size];
+    lab_dist_[i] = cache;
+
+    x = i % input_->width;
+    for (int row = 0; row < rows; ++row)
+    {
+      index = i + (row - step_) * input_->width - x;
+      for (int col = 0; col < cols; ++col)
+      {
+        if (index >= 0 && index < input_.size ())
+        {
+          tmp = calculateColorDistance (i, index);
+          *cache = tmp;
+          sum += tmp;
+          ++count;
+        }
+        ++cache;
+        ++index;
+      }
+    }
+  }
+  mean_lab_dist_ = sum / count;
+
+  xyz_dist_.resize (input->size ());
+  sum = 0.0;
+  count = 0;
+  for (size_t i = 0; i < xyz_dist_.size (); ++i)
+  {
+    cache = new double[size];
+    xyz_dist_[i] = cache;
+
+    x = i % input_->width;
+    for (int row = 0; row < rows; ++row)
+    {
+      index = i + (row - step_) * input_->width - x;
+      for (int col = 0; col < cols; ++col)
+      {
+        if (index >= 0 && index < input_.size () && pcl::isFinite(input_[i]))
+        {
+          tmp = calculateSpatialDistance (i, index);
+          *cache = tmp;
+          sum += tmp;
+          ++count;
+        }
+        ++cache;
+        ++index;
+      }
+    }
+  }
+  mean_xyz_dist_ = sum / count;
+
+  return (true);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointT, typename PointLT> void
+pcl::SLICSuperpixelSegmentation<PointT, PointLT>::seeding (std::vector<int> &seeds)
+{
+  int row, col;
+  int x, y;
 
   // Perform hex grid seeding
   seeds.clear ();
   for (int col = 0, magic = 0; ; ++col, ++magic)
   {
-    y = col * step + offset_y;
+    y = col * step_ + offset_;
     if (y > input_->height - 1)
     {
       break;
     }
     for (int row = 0; ; ++row)
     {
-      x = row * step + (offset_x << (magic & 0x1)); // hex grid
+      x = row * step_ + (offset_ << (magic & 0x1)); // hex grid
       if (x > input_->width - 1)
       {
         break;
@@ -128,7 +207,7 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::seeding (std::vector<int> &see
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointT, typename PointLT> void
-pcl::SLICSuperpixelSegmentation<PointT, PointLT>::refineSeeds (std::vector<int> &seeds) const
+pcl::SLICSuperpixelSegmentation<PointT, PointLT>::refineSeeds (std::vector<int> &seeds)
 {
   int old, index;
   double min;
@@ -171,7 +250,7 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::refineSeeds (std::vector<int> 
 template <typename PointT, typename PointLT> void
 pcl::SLICSuperpixelSegmentation<PointT, PointLT>::iterativeCluster (const std::vector<int> &seeds,
                                                                     PointCloudL &labels,
-                                                                    std::vector<pcl::PointIndices> &label_indices) const
+                                                                    std::vector<pcl::PointIndices> &label_indices)
 {
   labels.resize (input_->size ());
   label_indices.resize (seeds.size ());
@@ -186,36 +265,9 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::iterativeCluster (const std::v
 template <typename PointT, typename PointLT> void
 pcl::SLICSuperpixelSegmentation<PointT, PointLT>::enforeConnectivity (std::vector<int> &seeds,
                                                                       PointCloudL &labels,
-                                                                      std::vector<pcl::PointIndices> &label_indices) const
+                                                                      std::vector<pcl::PointIndices> &label_indices)
 {
 
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-template <typename PointT, typename PointLT> inline double
-pcl::SLICSuperpixelSegmentation<PointT, PointLT>::calculateDistance (int index1, int index2) const
-{
-  double sum;
-  double tmp;
-
-  // Color distance
-  tmp = labs_[index1].l - labs_[index2].l;
-  sum = tmp * tmp;
-  tmp = labs_[index1].a - labs_[index2].a;
-  sum += tmp * tmp;
-  tmp = labs_[index1].b - labs_[index2].b;
-  sum += tmp * tmp;
-
-  // Spatial distance
-  tmp = input_[index1].x - input_[index2].x;
-  sum += tmp * tmp;
-  tmp = input_[index1].y - input_[index2].y;
-  sum += tmp * tmp;
-  tmp = input_[index1].z - input_[index2].z;
-  sum += tmp * tmp;
-
-  // sum = (l1-l2)^2 + (a1-a2)^2 + (b1-b2)^2 + (x1-x2)^2 + (y1-y2)^2 + (z1-z2)^2
-  return sum;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -247,6 +299,62 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::calculateGradient (int index) 
     return std::numeric_limits<double>::max ();
   }
   return sum / count;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointT, typename PointLT> inline double
+pcl::SLICSuperpixelSegmentation<PointT, PointLT>::calculateDistance (int index1, int index2) const
+{
+  double sum;
+
+  // Color distance
+  sum = calculateColorDistance (index1, index2) / mean_lab_dist_ / mean_lab_dist_;
+
+  // Spatial distance
+  if (pcl::isFinite (input_[index1]) && pcl::isFinite (input_[index2]))
+  {
+    sum += calculateSpatialDistance (index1, index2) / mean_xyz_dist_ / mean_xyz_dist_;
+  }
+  else
+  {
+    sum += sum;
+  }
+
+  return sum;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointT, typename PointLT> inline double
+pcl::SLICSuperpixelSegmentation<PointT, PointLT>::calculateColorDistance (int index1, int index2) const
+{
+  double sum;
+  double tmp;
+
+  tmp = labs_[index1].l - labs_[index2].l;
+  sum = tmp * tmp;
+  tmp = labs_[index1].a - labs_[index2].a;
+  sum += tmp * tmp;
+  tmp = labs_[index1].b - labs_[index2].b;
+  sum += tmp * tmp;
+
+  return sum;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointT, typename PointLT> inline double
+pcl::SLICSuperpixelSegmentation<PointT, PointLT>::calculateColorDistance (int index1, int index2) const
+{
+  double sum;
+  double tmp;
+
+  tmp = input_[index1].x - input_[index2].x;
+  sum = tmp * tmp;
+  tmp = input_[index1].y - input_[index2].y;
+  sum += tmp * tmp;
+  tmp = input_[index1].z - input_[index2].z;
+  sum += tmp * tmp;
+
+  return sum;
 }
 
 #define PCL_INSTANTIATE_SLICSuperpixelSegmentation(T,LT) template class PCL_EXPORTS pcl::SLICSLICSuperpixelSegmentation<T,LT>;

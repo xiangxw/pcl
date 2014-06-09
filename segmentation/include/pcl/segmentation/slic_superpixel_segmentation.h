@@ -72,7 +72,8 @@ namespace pcl
 
       /** \brief Constructor for SLICSuperpixelSegmentation. */
       SLICSuperpixelSegmentation ()
-        : labs_ (), num_superpixels_ (500), refine_seeds_ (true), max_iteration_ (10), enfore_connectivity_ (true)
+        : num_superpixels_ (500), refine_seeds_ (true), max_iteration_ (10), enfore_connectivity_ (true)
+        , labs_ (), lab_dist_ (), xyz_dist_ (), mean_lab_dist_ (), mean_xyz_dist_ (), step_ (), offset_ ()
       {
       }
 
@@ -156,55 +157,74 @@ namespace pcl
         * \param[out] label_indices a vector of PointIndices corresponding to each label
         */
       void
-      segment (PointCloudL &labels, std::vector<pcl::PointIndices> &label_indices) const;
+      segment (PointCloudL &labels, std::vector<pcl::PointIndices> &label_indices);
 
     protected:
+      /** Initialize compute. */
+      bool
+      initCompute ();
+
+    private:
       /** \brief CIELAB color space. */
       struct Lab
       {
         double l, a, b;
       };
 
-      /** \brief Seeding.
+      /** \brief Uniform spatial seeding.
         * \param[out] seeds index of seed points
         */
-      virtual void
-      seeding (std::vector<int> &seeds) const;
+      void
+      seeding (std::vector<int> &seeds);
 
       /** \brief Refine seeds. 
         * \param[out] seeds index of seed points
         */
-      virtual void
-      refineSeeds (std::vector<int> &seeds) const;
+      void
+      refineSeeds (std::vector<int> &seeds);
 
       /** \brief Iterative cluster.
         * \param[in] seeds index of seed points
         * \param[out] labels a PointCloud of labels: each superpixel will have a unique id
         * \param[out] label_indices a vector of PointIndices corresponding to each label
         */
-      virtual void
-      iterativeCluster (const std::vector<int> &seeds, PointCloudL &labels, std::vector<pcl::PointIndices> &label_indices) const;
+      void
+      iterativeCluster (const std::vector<int> &seeds, PointCloudL &labels, std::vector<pcl::PointIndices> &label_indices);
 
       /** \brief Enfore connectivity.
         * \param[in] seeds index of seed points
         * \param[out] labels a PointCloud of labels: each superpixel will have a unique id
         * \param[out] label_indices a vector of PointIndices corresponding to each label
         */
-      virtual void
-      enforeConnectivity (const std::vector<int> &seeds, PointCloudL &labels, std::vector<pcl::PointIndices> &label_indices) const;
+      void
+      enforeConnectivity (const std::vector<int> &seeds, PointCloudL &labels, std::vector<pcl::PointIndices> &label_indices);
 
+      /** \brief Calculate gradient of a point with 4-connected neighborhoods.
+        * For more information please see the paper.
+        * \param[in] index index of the point 
+        */
+      double
+      calculateGradient (int index) const;
       /** \brief Calculate distance of two points.
+        * For more information please see the paper.
         * \param[in] index1 index of point 1
         * \param[in] index2 index of point 2
-        * \param[in] mean_lab mean distance of lab color space
-        * \param[in] mean_xyz mean distance of spatial space
-        * \note The two input points MUST be finite.
         */
-      virtual double
-      calculateDistance (int index1, int index2, double mean_lab, double mean_xyz) const;
+      double
+      calculateDistance (int index1, int index2) const;
+      /** \brief Calculate color distance of two points.
+        * \param[in] index1 index of point 1
+        * \param[in] index2 index of point 2
+        */
+      double
+      calculateColorDistance (int index1, int index2) const;
+      /** \brief Calculate spatial distance of two points.
+        * \param[in] index1 index of point 1
+        * \param[in] index2 index of point 2
+        */
+      double
+      calculateSpatialDistance (int index1, int index2) const;
 
-      /** \brief Values of CIELAB color space for all pixels. */
-      std::vector<CIELab> labs_;
       /** \brief Number of superpixels to segment.
         * \note number of segmented superpixels may not be exactly equal to this value
         */
@@ -224,12 +244,24 @@ namespace pcl
         */
       bool enfore_connectivity_;
 
-    private:
-      /** \brief Calculate gradient of a point with 4-connected neighborhoods.
-        * \param[in] index index of the point 
+      /** \brief Values of Lab color space for all pixels. */
+      std::vector<Lab> labs_;
+      /** \brief Distance cache of lab color space.
+        * Every point has a 2*step_ * 2*step_ sized distance cache.
         */
-      double
-      calculateGradient (int index) const;
+      std::vector<double *> lab_dist_;
+      /** brief Distance cache of xyz spatial space.
+        * Every point has a 2*step_ * 2*step_ sized distance cache.
+        */
+      std::vector<double *> xyz_dist_;
+      /** Mean lab color distance. */
+      double mean_lab_dist_;
+      /** Mean xyz spatial distance. */
+      double mean_xyz_dist_;
+      /** \brief Step size of the grid interval. Equal to :math:`sqrt (N / num_superpixels_)`. */
+      int step_;
+      /** \brief Offset of the grid interval. Equal to :math:`sqrt (N / num_superpixels_) / 2`. */
+      int offset_;
   };
 }
 
