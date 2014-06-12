@@ -47,8 +47,6 @@
 template <typename PointT, typename PointLT> void
 pcl::SLICSuperpixelSegmentation<PointT, PointLT>::segment (PointCloudL &labels, std::vector<pcl::PointIndices> &label_indices)
 {
-  std::vector<int> seeds;
-
   // Initialize compute
   if (!initCompute ())
   {
@@ -57,21 +55,21 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::segment (PointCloudL &labels, 
   }
 
   // Seeding
-  seeding (seeds);
+  seeding ();
 
   // Refine seeds
   if (refine_seeds_)
   {
-    refineSeeds (seeds);
+    refineSeeds ();
   }
 
   // Iterative clustering
-  iterativeCluster (seeds, labels, label_indices);
+  iterativeCluster (labels, label_indices);
 
   // Enfore connectivity
   if (enfore_connectivity_)
   {
-    enforeConnectivity (seeds, labels, label_indices);
+    enforeConnectivity (labels, label_indices);
   }
 
   // Deinit compute
@@ -165,12 +163,12 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::initCompute ()
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointT, typename PointLT> void
-pcl::SLICSuperpixelSegmentation<PointT, PointLT>::seeding (std::vector<int> &seeds)
+pcl::SLICSuperpixelSegmentation<PointT, PointLT>::seeding ()
 {
+  Seed seed;
   int x, y;
 
   // Perform hex grid seeding
-  seeds.clear ();
   for (int col = 0, magic = 0; ; ++col, ++magic)
   {
     y = col * step_ + offset_;
@@ -185,16 +183,23 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::seeding (std::vector<int> &see
       {
         break;
       }
-      seeds.push_back (y * input_->width + x);
+      seed.index = y * input_->width + x;
+      seed.l = labs_[seed.index].l;
+      seed.a = labs_[seed.index].a;
+      seed.b = labs_[seed.index].b;
+      seed.x = input_->points[seed.index].x;
+      seed.y = input_->points[seed.index].y;
+      seed.z = input_->points[seed.index].z;
+      seeds_.push_back (seed);
     }
   }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointT, typename PointLT> void
-pcl::SLICSuperpixelSegmentation<PointT, PointLT>::refineSeeds (std::vector<int> &seeds)
+pcl::SLICSuperpixelSegmentation<PointT, PointLT>::refineSeeds ()
 {
-  int old, index;
+  size_t old, index;
   double min;
   int offset[8];
   double tmp;
@@ -210,9 +215,9 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::refineSeeds (std::vector<int> 
   offset[7] = input_->width + 1;  // down-right
 
   // Find the point with minimum gradient in 8-connected neighborhoods
-  for (std::vector<int>::iterator it = seeds.begin (); it != seeds.end (); ++it)
+  for (std::vector<int>::iterator it = seeds_.begin (); it != seeds_.end (); ++it)
   {
-    old = *it;
+    old = it->index;
     min = calculateGradient (old);
 
     for (int i = 0; i < 8; ++i)
@@ -224,17 +229,26 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::refineSeeds (std::vector<int> 
         if (tmp < min)
         {
           min = tmp;
-          *it = index;
+          it->index = index;
         }
       }
+    }
+
+    if (old != it->index)
+    {
+      it->l = labs_[it->index].l;
+      it->a = labs_[it->index].a;
+      it->b = labs_[it->index].b;
+      it->x = input_->points[it->index].x;
+      it->y = input_->points[it->index].y;
+      it->z = input_->points[it->index].z;
     }
   }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointT, typename PointLT> void
-pcl::SLICSuperpixelSegmentation<PointT, PointLT>::iterativeCluster (const std::vector<int> &seeds,
-                                                                    PointCloudL &labels,
+pcl::SLICSuperpixelSegmentation<PointT, PointLT>::iterativeCluster (PointCloudL &labels,
                                                                     std::vector<pcl::PointIndices> &label_indices)
 {
   std::vector<double> dist_vec ( // Distance to the closest seed
@@ -246,24 +260,24 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::iterativeCluster (const std::v
   double tmp;
 
   labels.resize (input_->size ());
-  label_indices.resize (seeds.size ());
+  label_indices.resize (seeds_.size ());
 
   for (unsigned int i = 0; i < max_iteration_; ++i)
   {
     // Find the closest seed and calculate distance to the seed
-    for (size_t i = 0; i < seeds.size (); ++i)
+    for (size_t i = 0; i < seeds_.size (); ++i)
     {
-      x = seeds[i] % input_->width;
+      x = seeds_[i].index % input_->width;
       count = 0;
       // For each point, calculate distance with points within a 2*step_ * 2*step_ sized rect
       for (int row = 0; row < rows; ++row)
       {
-        index = seeds[i] + (row - step_) * input_->width - x;
+        index = seeds_[i].index + (row - step_) * input_->width - x;
         for (int col = 0; col < cols; ++col)
         {
           if (index >= 0 && index < input_->size ())
           {
-            tmp = calculateDistance (seeds[i], index);
+            tmp = calculateDistance (seeds_[i].index, index);
             if (dist_vec[index] > tmp)
             {
               dist_vec[index] = tmp;
@@ -279,8 +293,7 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::iterativeCluster (const std::v
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointT, typename PointLT> void
-pcl::SLICSuperpixelSegmentation<PointT, PointLT>::enforeConnectivity (const std::vector<int> &seeds,
-                                                                      PointCloudL &labels,
+pcl::SLICSuperpixelSegmentation<PointT, PointLT>::enforeConnectivity (PointCloudL &labels,
                                                                       std::vector<pcl::PointIndices> &label_indices)
 {
   (void)seeds;
@@ -290,7 +303,7 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::enforeConnectivity (const std:
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointT, typename PointLT> inline double
-pcl::SLICSuperpixelSegmentation<PointT, PointLT>::calculateGradient (int index) const
+pcl::SLICSuperpixelSegmentation<PointT, PointLT>::calculateGradient (size_t index) const
 {
   int offset[4];
   double sum = 0.0;
@@ -321,7 +334,7 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::calculateGradient (int index) 
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointT, typename PointLT> inline double
-pcl::SLICSuperpixelSegmentation<PointT, PointLT>::calculateDistance (int index1, int index2) const
+pcl::SLICSuperpixelSegmentation<PointT, PointLT>::calculateDistance (size_t index1, size_t index2) const
 {
   double sum;
 
@@ -343,7 +356,7 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::calculateDistance (int index1,
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointT, typename PointLT> inline double
-pcl::SLICSuperpixelSegmentation<PointT, PointLT>::calculateColorDistance (int index1, int index2) const
+pcl::SLICSuperpixelSegmentation<PointT, PointLT>::calculateColorDistance (size_t index1, size_t index2) const
 {
   double sum;
   double tmp;
@@ -360,7 +373,7 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::calculateColorDistance (int in
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointT, typename PointLT> inline double
-pcl::SLICSuperpixelSegmentation<PointT, PointLT>::calculateSpatialDistance (int index1, int index2) const
+pcl::SLICSuperpixelSegmentation<PointT, PointLT>::calculateSpatialDistance (size_t index1, size_t index2) const
 {
   double sum;
   double tmp;

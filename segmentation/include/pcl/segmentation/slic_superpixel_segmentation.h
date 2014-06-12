@@ -45,7 +45,7 @@ namespace pcl
 {
   /** \brief Simple linear iterative clustering (SLIC) superpixel segmentation.
     *
-    * \note The input point cloud should be organized
+    * \note The input point cloud should be organized.
     * \note For more information please see
     * <b>Radhakrishna Achanta, Appu Shaji, Kevin Smith, Aurelien Lucchi, Pascal Fua, and Sabine Süsstrunk,
     * SLIC Superpixels Compared to State-of-the-art Superpixel Methods,
@@ -73,7 +73,7 @@ namespace pcl
       /** \brief Constructor for SLICSuperpixelSegmentation. */
       SLICSuperpixelSegmentation ()
         : num_superpixels_ (500), refine_seeds_ (true), max_iteration_ (10), enfore_connectivity_ (true)
-        , labs_ (), mean_lab_dist_ (), mean_xyz_dist_ (), step_ (), offset_ ()
+        , labs_ (), seeds_ (), mean_lab_dist_ (), mean_xyz_dist_ (), step_ (), offset_ ()
       {
       }
 
@@ -171,59 +171,59 @@ namespace pcl
         double l, a, b;
       };
 
-      /** \brief Uniform spatial seeding.
-        * \param[out] seeds index of seed points
-        */
-      void
-      seeding (std::vector<int> &seeds);
+      struct Seed
+      {
+        double l, a, b, x, y, z;
+        size_t index;
+      };
 
-      /** \brief Refine seeds. 
-        * \param[out] seeds index of seed points
-        */
+      /** \brief Uniform spatial seeding. */
       void
-      refineSeeds (std::vector<int> &seeds);
+      seeding ();
+
+      /** \brief Refine seeds. */
+      void
+      refineSeeds ();
 
       /** \brief Iterative cluster.
-        * \param[in] seeds index of seed points
         * \param[out] labels a PointCloud of labels: each superpixel will have a unique id
         * \param[out] label_indices a vector of PointIndices corresponding to each label
         */
       void
-      iterativeCluster (const std::vector<int> &seeds, PointCloudL &labels, std::vector<pcl::PointIndices> &label_indices);
+      iterativeCluster (PointCloudL &labels, std::vector<pcl::PointIndices> &label_indices);
 
       /** \brief Enfore connectivity.
-        * \param[in] seeds index of seed points
         * \param[out] labels a PointCloud of labels: each superpixel will have a unique id
         * \param[out] label_indices a vector of PointIndices corresponding to each label
         */
       void
-      enforeConnectivity (const std::vector<int> &seeds, PointCloudL &labels, std::vector<pcl::PointIndices> &label_indices);
+      enforeConnectivity (PointCloudL &labels, std::vector<pcl::PointIndices> &label_indices);
 
       /** \brief Calculate gradient of a point with 4-connected neighborhoods.
         * For more information please see the paper.
         * \param[in] index index of the point 
         */
       double
-      calculateGradient (int index) const;
+      calculateGradient (size_t index) const;
       /** \brief Calculate distance of two points.
         * For more information please see the paper.
         * \param[in] index1 index of point 1
         * \param[in] index2 index of point 2
         */
       double
-      calculateDistance (int index1, int index2) const;
+      calculateDistance (size_t index1, size_t index2) const;
       /** \brief Calculate color distance of two points.
         * \param[in] index1 index of point 1
         * \param[in] index2 index of point 2
         */
       double
-      calculateColorDistance (int index1, int index2) const;
+      calculateColorDistance (size_t index1, size_t index2) const;
       /** \brief Calculate spatial distance of two points.
         * \param[in] index1 index of point 1
         * \param[in] index2 index of point 2
         */
       double
-      calculateSpatialDistance (int index1, int index2) const;
+      calculateSpatialDistance (size_t index1, size_t index2) const;
 
       /** \brief Number of superpixels to segment.
         * \note number of segmented superpixels may not be exactly equal to this value
@@ -246,6 +246,8 @@ namespace pcl
 
       /** \brief Values of Lab color space for all pixels. */
       std::vector<Lab> labs_;
+      /** \brief Seeds. */
+      std::vector<Seed> seeds_;
       /** Mean lab color distance. */
       double mean_lab_dist_;
       /** Mean xyz spatial distance. */
