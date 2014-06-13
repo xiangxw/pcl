@@ -153,7 +153,7 @@ namespace pcl
       }
 
       /** \brief Perform SLIC superpixel segmentation.
-        * \param[out] labels a PointCloud of labels: each superpixel will have a unique id
+        * \param[out] labels a PointCloud of labels. Each superpixel will have a unique id. Id of unlabeled points is 0
         * \param[out] label_indices a vector of PointIndices corresponding to each label
         */
       void
@@ -173,8 +173,10 @@ namespace pcl
 
       struct Seed
       {
-        double l, a, b, x, y, z;
-        size_t index;
+        double l, a, b;
+        double x, y, z; // 3d pos
+        size_t xx, yy;  // 2d pos in input_->width * input_->height
+        size_t index;   // index in input_
       };
 
       /** \brief Uniform spatial seeding. */

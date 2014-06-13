@@ -183,6 +183,8 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::seeding ()
       {
         break;
       }
+      seed.xx = x;
+      seed.yy = y;
       seed.index = y * input_->width + x;
       seed.l = labs_[seed.index].l;
       seed.a = labs_[seed.index].a;
@@ -242,6 +244,8 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::refineSeeds ()
       it->x = input_->points[it->index].x;
       it->y = input_->points[it->index].y;
       it->z = input_->points[it->index].z;
+      it->xx = it->index % input_->width;
+      it->yy = it->index / input_->width;
     }
   }
 }
@@ -255,20 +259,19 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::iterativeCluster (PointCloudL 
                                 input_->size (), std::numeric_limits<double>::max ());
   int rows = step_ + step_ + 1;
   int cols = rows;
-  size_t index, count;
+  size_t index;
   size_t x;
   double tmp;
 
-  labels.resize (input_->size ());
+  labels.resize (input_->size (), PointLT ());
   label_indices.resize (seeds_.size ());
 
-  for (unsigned int i = 0; i < max_iteration_; ++i)
+  for (unsigned int it = 0; it < max_iteration_; ++it)
   {
     // Find the closest seed and calculate distance to the seed
     for (size_t i = 0; i < seeds_.size (); ++i)
     {
       x = seeds_[i].index % input_->width;
-      count = 0;
       // For each point, calculate distance with points within a 2*step_ * 2*step_ sized rect
       for (int row = 0; row < rows; ++row)
       {
@@ -281,13 +284,53 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::iterativeCluster (PointCloudL 
             if (dist_vec[index] > tmp)
             {
               dist_vec[index] = tmp;
+              labels[index].label = i + 1; // Default label is 0, so we plus one here
             }
           }
           ++index;
-          ++count;
         }
       }
     }
+
+		// Recalculate the centroid and store in the seed values
+    for (size_t i = 0; i < seeds_.size (); ++i)
+    {
+      memset (&(seeds_[i]), 0, sizeof (seeds_[i]));
+    }
+    for (size_t i = 0; i < input_->size (); ++i)
+    {
+      index = labels[i].label - 1;
+      seed_[index].l += labs_[i].l;
+      seed_[index].a += labs_[i].a;
+      seed_[index].b += labs_[i].b;
+      seed_[index].x += input_[i].x;
+      seed_[index].y += input_[i].y;
+      seed_[index].z += input_[i].z;
+      seed_[index].xx += index % input_->width;
+      seed_[index].yy += index / input_->width;
+      ++(seed_[index].index); // Increase counter
+    }
+    for (size_t i = 0; i < seeds_.size (); ++i)
+    {
+      if (seed_[i].index)
+      {
+        seed_[i].l /= seed_[i].index;
+        seed_[i].a /= seed_[i].index;
+        seed_[i].b /= seed_[i].index;
+        seed_[i].x /= seed_[i].index;
+        seed_[i].y /= seed_[i].index;
+        seed_[i].z /= seed_[i].index;
+        seed_[i].xx /= seed_[i].index;
+        seed_[i].yy /= seed_[i].index;
+        seed_[i].index = seed_[i].yy * input_->width + seed_[i].xx;
+      }
+    }
+  }
+
+  // Assign each point to corresponding label
+  for (size_t i = 0; i < input_->size (); ++i)
+  {
+    label_indices[labels[i].label].indices.push_back(i);
   }
 }
 
@@ -296,7 +339,6 @@ template <typename PointT, typename PointLT> void
 pcl::SLICSuperpixelSegmentation<PointT, PointLT>::enforeConnectivity (PointCloudL &labels,
                                                                       std::vector<pcl::PointIndices> &label_indices)
 {
-  (void)seeds;
   (void)labels;
   (void)label_indices;
 }
