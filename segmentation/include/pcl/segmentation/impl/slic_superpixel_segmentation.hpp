@@ -217,35 +217,35 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::refineSeeds ()
   offset[7] = input_->width + 1;  // down-right
 
   // Find the point with minimum gradient in 8-connected neighborhoods
-  for (std::vector<int>::iterator it = seeds_.begin (); it != seeds_.end (); ++it)
+  for (size_t i = 0; i < seeds_.size (); ++i)
   {
-    old = it->index;
+    old = seeds_[i].index;
     min = calculateGradient (old);
 
-    for (int i = 0; i < 8; ++i)
+    for (int j = 0; j < 8; ++j)
     {
-      index = old + offset[i];
+      index = old + offset[j];
       if (index >= 0 && index < input_->size ())
       {
         tmp = calculateGradient (index);
         if (tmp < min)
         {
           min = tmp;
-          it->index = index;
+          seeds_[i].index = index;
         }
       }
     }
 
-    if (old != it->index)
+    if (old != seeds_[i].index)
     {
-      it->l = labs_[it->index].l;
-      it->a = labs_[it->index].a;
-      it->b = labs_[it->index].b;
-      it->x = input_->points[it->index].x;
-      it->y = input_->points[it->index].y;
-      it->z = input_->points[it->index].z;
-      it->xx = it->index % input_->width;
-      it->yy = it->index / input_->width;
+      seeds_[i].l = labs_[seeds_[i].index].l;
+      seeds_[i].a = labs_[seeds_[i].index].a;
+      seeds_[i].b = labs_[seeds_[i].index].b;
+      seeds_[i].x = input_->points[seeds_[i].index].x;
+      seeds_[i].y = input_->points[seeds_[i].index].y;
+      seeds_[i].z = input_->points[seeds_[i].index].z;
+      seeds_[i].xx = seeds_[i].index % input_->width;
+      seeds_[i].yy = seeds_[i].index / input_->width;
     }
   }
 }
@@ -263,7 +263,7 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::iterativeCluster (PointCloudL 
   size_t x;
   double tmp;
 
-  labels.resize (input_->size (), PointLT ());
+  labels.resize (input_->size ());
   label_indices.resize (seeds_.size ());
 
   for (unsigned int it = 0; it < max_iteration_; ++it)
@@ -300,29 +300,29 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::iterativeCluster (PointCloudL 
     for (size_t i = 0; i < input_->size (); ++i)
     {
       index = labels[i].label - 1;
-      seed_[index].l += labs_[i].l;
-      seed_[index].a += labs_[i].a;
-      seed_[index].b += labs_[i].b;
-      seed_[index].x += input_[i].x;
-      seed_[index].y += input_[i].y;
-      seed_[index].z += input_[i].z;
-      seed_[index].xx += index % input_->width;
-      seed_[index].yy += index / input_->width;
-      ++(seed_[index].index); // Increase counter
+      seeds_[index].l += labs_[i].l;
+      seeds_[index].a += labs_[i].a;
+      seeds_[index].b += labs_[i].b;
+      seeds_[index].x += input_->points[i].x;
+      seeds_[index].y += input_->points[i].y;
+      seeds_[index].z += input_->points[i].z;
+      seeds_[index].xx += index % input_->width;
+      seeds_[index].yy += index / input_->width;
+      ++(seeds_[index].index); // Increase counter
     }
     for (size_t i = 0; i < seeds_.size (); ++i)
     {
-      if (seed_[i].index)
+      if (seeds_[i].index)
       {
-        seed_[i].l /= seed_[i].index;
-        seed_[i].a /= seed_[i].index;
-        seed_[i].b /= seed_[i].index;
-        seed_[i].x /= seed_[i].index;
-        seed_[i].y /= seed_[i].index;
-        seed_[i].z /= seed_[i].index;
-        seed_[i].xx /= seed_[i].index;
-        seed_[i].yy /= seed_[i].index;
-        seed_[i].index = seed_[i].yy * input_->width + seed_[i].xx;
+        seeds_[i].l /= seeds_[i].index;
+        seeds_[i].a /= seeds_[i].index;
+        seeds_[i].b /= seeds_[i].index;
+        seeds_[i].x /= seeds_[i].index;
+        seeds_[i].y /= seeds_[i].index;
+        seeds_[i].z /= seeds_[i].index;
+        seeds_[i].xx /= seeds_[i].index;
+        seeds_[i].yy /= seeds_[i].index;
+        seeds_[i].index = seeds_[i].yy * input_->width + seeds_[i].xx;
       }
     }
   }
