@@ -264,7 +264,7 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::iterativeCluster (PointCloudL 
   double tmp;
 
   labels.resize (input_->size ());
-  label_indices.resize (seeds_.size ());
+  label_indices.resize (seeds_.size () + 1); // Default label is 0, so we plus one here
 
   for (unsigned int it = 0; it < max_iteration_; ++it)
   {
@@ -299,16 +299,19 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::iterativeCluster (PointCloudL 
     }
     for (size_t i = 0; i < input_->size (); ++i)
     {
-      index = labels[i].label - 1;
-      seeds_[index].l += labs_[i].l;
-      seeds_[index].a += labs_[i].a;
-      seeds_[index].b += labs_[i].b;
-      seeds_[index].x += input_->points[i].x;
-      seeds_[index].y += input_->points[i].y;
-      seeds_[index].z += input_->points[i].z;
-      seeds_[index].xx += index % input_->width;
-      seeds_[index].yy += index / input_->width;
-      ++(seeds_[index].index); // Increase counter
+      if (labels[i].label)
+      {
+        index = labels[i].label - 1;
+        seeds_[index].l += labs_[i].l;
+        seeds_[index].a += labs_[i].a;
+        seeds_[index].b += labs_[i].b;
+        seeds_[index].x += input_->points[i].x;
+        seeds_[index].y += input_->points[i].y;
+        seeds_[index].z += input_->points[i].z;
+        seeds_[index].xx += index % input_->width;
+        seeds_[index].yy += index / input_->width;
+        ++(seeds_[index].index); // Increase counter
+      }
     }
     for (size_t i = 0; i < seeds_.size (); ++i)
     {
