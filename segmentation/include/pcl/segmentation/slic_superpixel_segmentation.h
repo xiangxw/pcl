@@ -159,6 +159,14 @@ namespace pcl
       void
       segment (PointCloudL &labels, std::vector<pcl::PointIndices> &label_indices);
 
+      /** \brief Find boundary.
+        * \param[in] labels a PointCloud of labels. Each superpixel will have a unique id. Id of unlabeled points is 0
+        * \param[in] label_indices a vector of PointIndices corresponding to each label
+        * \param[out] boundary_indices boundary indices
+        */
+      static void
+      findBoundary (const PointCloudL &labels, const std::vector<pcl::PointIndices> &label_indices, pcl::PointIndices &boundary_indices);
+
     protected:
       /** Initialize compute. */
       bool
