@@ -30,8 +30,8 @@ main(int argc, char **argv)
   pcl::PointIndices boundary_indices;
   slic.setInputCloud (cloud);
   slic.setNumberOfSuperpixels (100);
-  slic.setMaximumIteration (1);
-  slic.setRefineSeeds (false);
+  //slic.setMaximumIteration (1);
+  //slic.setRefineSeeds (false);
   slic.segment (labels, label_indices);
   slic.findBoundary (labels, label_indices, boundary_indices);
   std::cout << "pixels count: " << label_indices.size () << std::endl;
@@ -39,6 +39,7 @@ main(int argc, char **argv)
   {
     std::cout << label_indices[i].indices.size () << " ";
   }
+  std::cout << std::endl;
 
   // Visualization
   pcl::visualization::PCLVisualizer viewer ("SLIC Superpixel Segmentation");
@@ -48,6 +49,8 @@ main(int argc, char **argv)
   viewer.addPointCloud (cloud, "cloud");
   viewer.addPointCloud (boundary, boundary_color, "boundary");
   viewer.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 5, "boundary");
+  viewer.setCameraPosition (0, 0, 0, 0, 0, 1, 0, -1, 0);
+  viewer.setSize (cloud->height, cloud->width);
   while (!viewer.wasStopped ())
   {
     viewer.spinOnce (10);
