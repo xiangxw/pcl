@@ -83,15 +83,16 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::findBoundary (const PointCloud
                                                                 pcl::PointIndices &boundary_indices)
 {
   int offset[8];
-  long int index;
+  int index;
   int count;
+  std::vector<bool> visited (labels.size ());
 
-  // 8-connected neightorhoods
+  // 8-connected neighborhoods
   offset[0] = -labels.width - 1; // up-left
   offset[1] = -labels.width;     // up
   offset[2] = -labels.width + 1; // up-right
-  offset[3] = -1;                 // left
-  offset[4] = 1;                  // right
+  offset[3] = -1;                // left
+  offset[4] = 1;                 // right
   offset[5] = labels.width - 1;  // down-left
   offset[6] = labels.width;      // down
   offset[7] = labels.width + 1;  // down-right
@@ -102,14 +103,15 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::findBoundary (const PointCloud
     for (int j = 0; j < 8; ++j)
     {
       index = i + offset[j];
-      if (index >= 0 && index < labels.size () && labels[i].label != labels[index].label)
+      if (index >= 0 && index < labels.size () && !visited[index] && labels[i].label != labels[index].label)
       {
         ++count;
       }
     }
-    if (count > 1) // change to 2 or 3 for thinner lines
+    if (count > 0)
     {
       boundary_indices.indices.push_back (i);
+      visited[i] = true;
     }
   }
 }
@@ -147,7 +149,7 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::initCompute ()
   // Calculate mean distance of lab color space and xyz spatial space
   int rows = step_ + step_ + 1;
   int cols = rows;
-  long int index;
+  int index;
   size_t x;
   double sum;
   size_t count;
@@ -223,7 +225,7 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::seeding ()
       }
       seed.xx = x;
       seed.yy = y;
-      seed.index = (long int) (y) * input_->width + x;
+      seed.index = (size_t) (y) * input_->width + x;
       seed.l = labs_[seed.index].l;
       seed.a = labs_[seed.index].a;
       seed.b = labs_[seed.index].b;
@@ -240,12 +242,12 @@ template <typename PointT, typename PointLT> void
 pcl::SLICSuperpixelSegmentation<PointT, PointLT>::refineSeeds ()
 {
   size_t old;
-  long int index;
+  int index;
   double min;
   int offset[8];
   double tmp;
 
-  // 8-connected neightorhoods
+  // 8-connected neighborhoods
   offset[0] = -input_->width - 1; // up-left
   offset[1] = -input_->width;     // up
   offset[2] = -input_->width + 1; // up-right
@@ -296,10 +298,10 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::iterativeCluster (PointCloudL 
 {
   std::vector<double> dist_vec ( // Distance to the closest seed
                                 input_->size (), std::numeric_limits<double>::max ());
+  std::vector<Seed> seeds_tmp (seeds_.size ());
   int rows = step_ + step_ + 1;
   int cols = rows;
-  long int index;
-  size_t x;
+  int index;
   double tmp;
 
   labels.resize (input_->size ());
@@ -310,11 +312,10 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::iterativeCluster (PointCloudL 
     // Find the closest seed and calculate distance to the seed
     for (size_t i = 0; i < seeds_.size (); ++i)
     {
-      x = seeds_[i].index % input_->width;
       // For each point, calculate distance with points within a 2*step_ * 2*step_ sized rect
       for (int row = 0; row < rows; ++row)
       {
-        index = seeds_[i].index + (row - step_) * input_->width - x;
+        index = seeds_[i].index + (row - step_) * input_->width - step_;
         for (int col = 0; col < cols; ++col)
         {
           if (index >= 0 && index < input_->size ())
@@ -332,38 +333,38 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::iterativeCluster (PointCloudL 
     }
 
 		// Recalculate the centroid and store in the seed values
-    for (size_t i = 0; i < seeds_.size (); ++i)
+    for (size_t i = 0; i < seeds_tmp.size (); ++i)
     {
-      memset (&(seeds_[i]), 0, sizeof (seeds_[i]));
+      memset (&(seeds_tmp[i]), 0, sizeof (seeds_tmp[i]));
     }
     for (size_t i = 0; i < input_->size (); ++i)
     {
       if (labels[i].label)
       {
         index = labels[i].label - 1;
-        seeds_[index].l += labs_[i].l;
-        seeds_[index].a += labs_[i].a;
-        seeds_[index].b += labs_[i].b;
-        seeds_[index].x += input_->points[i].x;
-        seeds_[index].y += input_->points[i].y;
-        seeds_[index].z += input_->points[i].z;
-        seeds_[index].xx += index % input_->width;
-        seeds_[index].yy += index / input_->width;
-        ++(seeds_[index].index); // Increase counter
+        seeds_tmp[index].l += labs_[i].l;
+        seeds_tmp[index].a += labs_[i].a;
+        seeds_tmp[index].b += labs_[i].b;
+        seeds_tmp[index].x += input_->points[i].x;
+        seeds_tmp[index].y += input_->points[i].y;
+        seeds_tmp[index].z += input_->points[i].z;
+        seeds_tmp[index].xx += seeds_[index].index % input_->width;
+        seeds_tmp[index].yy += seeds_[index].index / input_->width;
+        ++(seeds_tmp[index].index); // Increase counter
       }
     }
     for (size_t i = 0; i < seeds_.size (); ++i)
     {
-      if (seeds_[i].index)
+      if (seeds_tmp[i].index)
       {
-        seeds_[i].l /= seeds_[i].index;
-        seeds_[i].a /= seeds_[i].index;
-        seeds_[i].b /= seeds_[i].index;
-        seeds_[i].x /= seeds_[i].index;
-        seeds_[i].y /= seeds_[i].index;
-        seeds_[i].z /= seeds_[i].index;
-        seeds_[i].xx /= seeds_[i].index;
-        seeds_[i].yy /= seeds_[i].index;
+        seeds_[i].l = seeds_tmp[i].l / seeds_tmp[i].index;
+        seeds_[i].a = seeds_tmp[i].a / seeds_tmp[i].index;
+        seeds_[i].b = seeds_tmp[i].b / seeds_tmp[i].index;
+        seeds_[i].x = seeds_tmp[i].x / seeds_tmp[i].index;
+        seeds_[i].y = seeds_tmp[i].y / seeds_tmp[i].index;
+        seeds_[i].z = seeds_tmp[i].z / seeds_tmp[i].index;
+        seeds_[i].xx = seeds_tmp[i].xx / seeds_tmp[i].index;
+        seeds_[i].yy = seeds_tmp[i].yy / seeds_tmp[i].index;
         seeds_[i].index = seeds_[i].yy * input_->width + seeds_[i].xx;
       }
     }
@@ -392,7 +393,7 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::calculateGradient (size_t inde
   int offset[4];
   double sum = 0.0;
   int count = 0;
-  long int tmp;
+  int tmp;
 
   offset[0] = -input_->width; // up
   offset[1] = input_->width;  // down
