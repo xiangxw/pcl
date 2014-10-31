@@ -382,8 +382,90 @@ template <typename PointT, typename PointLT> void
 pcl::SLICSuperpixelSegmentation<PointT, PointLT>::enforeConnectivity (PointCloudL &labels,
                                                                       std::vector<pcl::PointIndices> &label_indices)
 {
-  (void)labels;
-  (void)label_indices;
+  PointCloudL new_labels;
+  std::vector<pcl::PointIndices> new_label_indices;
+  int offset[4];
+  int size = input_->size (); // Pixel size
+  int size_limit = size / num_superpixels_ / 4; // Mimimum size limit of each superpixel
+  int label = 1; // For new label
+
+  // Initialize
+  new_labels.resize (size);
+  for (size_t i = 0; i < size; ++i) // Set as unlabled
+  {
+    new_labels[i].label = 0;
+  }
+  new_label_indices.resize (seeds_.size () + 1); // Default label is 0, so we plus one here
+  offset[0] = -input_->width; // up
+  offset[1] = input_->width;  // down
+  offset[2] = -1;             // left
+  offset[3] = 1;              // right
+
+  // Enfore connectivity
+  for (size_t i = 0; i < size; ++i)
+  {
+    int adjacent_label = 0;
+    int count = 1;
+
+    if (new_labels[i].label != 0) // Connectivity already enforced
+    {
+      continue;
+    }
+
+    // Quickly find an adjacent label
+    for (int n = 0; n < 4; ++n)
+    {
+      int index = i + offset[n];
+      if (index >= 0 && index < size && labels[index].label > 0)
+      {
+        adjacent_label = labels[index].label;
+      }
+    }
+
+    // Calculate superpixel size
+    std::vector<int> next_indices;
+    next_indices.push_back(i);
+    for (int c = 0; c < count; ++c)
+    {
+      for (int n = 0; n < 4; ++n)
+      {
+        int index = next_indices[c] + offset[n];
+        if (index >= 0 && index < size
+            && new_labels[index].label == 0
+            && labels[i].label == labels[index].label)
+        {
+          new_labels[index].label = label;
+          next_indices.push_back(index);
+          ++count;
+        }
+      }
+    }
+
+    // Assign an adjacent label found before
+    if (count <= size_limit && adjacent_label > 0)
+    {
+      for (int c = 0; c < count; ++c)
+      {
+        int index = next_indices[c];
+        new_labels[index].label = adjacent_label;
+        new_label_indices[adjacent_label].indices.push_back(index);
+        std::cout << "-" << index << " ";
+      }
+    }
+    else
+    {
+      for (int c = 0; c < count; ++c)
+      {
+        int index = next_indices[c];
+        new_label_indices[label].indices.push_back(index);
+      }
+      ++label; // Start a new superpixel
+    }
+  }
+
+  // Assign new values
+  labels = new_labels;
+  label_indices = new_label_indices;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////

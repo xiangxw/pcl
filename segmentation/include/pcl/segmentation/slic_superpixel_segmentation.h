@@ -203,6 +203,9 @@ namespace pcl
       iterativeCluster (PointCloudL &labels, std::vector<pcl::PointIndices> &label_indices);
 
       /** \brief Enfore connectivity.
+        * 1. Find an adjacent label for each pixel at the start.
+        * 2. If a certain pixel is too small, assign the previously found
+        *    adjacent label to this pixel, and not increase the label.
         * \param[out] labels a PointCloud of labels: each superpixel will have a unique id
         * \param[out] label_indices a vector of PointIndices corresponding to each label
         */
