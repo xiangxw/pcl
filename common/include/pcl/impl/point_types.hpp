@@ -63,6 +63,7 @@
   (pcl::PointNormal)            \
   (pcl::PointXYZRGBNormal)      \
   (pcl::PointXYZINormal)        \
+  (pcl::PointXYZLNormal)        \
   (pcl::PointWithRange)         \
   (pcl::PointWithViewpoint)     \
   (pcl::MomentInvariants)       \
@@ -77,6 +78,7 @@
   (pcl::NormalBasedSignature12) \
   (pcl::FPFHSignature33)        \
   (pcl::VFHSignature308)        \
+  (pcl::GRSDSignature21)        \
   (pcl::ESFSignature640)        \
   (pcl::BRISKSignature512)      \
   (pcl::Narf36)                 \
@@ -84,6 +86,7 @@
   (pcl::PointWithScale)         \
   (pcl::PointSurfel)            \
   (pcl::ShapeContext1980)       \
+  (pcl::UniqueShapeContext1960) \
   (pcl::SHOT352)                \
   (pcl::SHOT1344)               \
   (pcl::PointUV)                \
@@ -110,6 +113,7 @@
   (pcl::PointNormal)          \
   (pcl::PointXYZRGBNormal)    \
   (pcl::PointXYZINormal)      \
+  (pcl::PointXYZLNormal)      \
   (pcl::PointWithRange)       \
   (pcl::PointWithViewpoint)   \
   (pcl::PointWithScale)       \
@@ -124,7 +128,8 @@
 // Define all point types with XYZ and label
 #define PCL_XYZL_POINT_TYPES  \
   (pcl::PointXYZL)            \
-  (pcl::PointXYZRGBL)
+  (pcl::PointXYZRGBL)         \
+  (pcl::PointXYZLNormal)
 
 // Define all point types that include normal[3] data
 #define PCL_NORMAL_POINT_TYPES  \
@@ -132,6 +137,7 @@
   (pcl::PointNormal)            \
   (pcl::PointXYZRGBNormal)      \
   (pcl::PointXYZINormal)        \
+  (pcl::PointXYZLNormal)        \
   (pcl::PointSurfel)
 
 // Define all point types that represent features
@@ -144,12 +150,29 @@
   (pcl::NormalBasedSignature12) \
   (pcl::FPFHSignature33)        \
   (pcl::VFHSignature308)        \
+  (pcl::GRSDSignature21)        \
   (pcl::ESFSignature640)        \
   (pcl::BRISKSignature512)      \
   (pcl::Narf36)
 
 namespace pcl
 {
+
+  typedef Eigen::Map<Eigen::Array3f> Array3fMap;
+  typedef const Eigen::Map<const Eigen::Array3f> Array3fMapConst;
+  typedef Eigen::Map<Eigen::Array4f, Eigen::Aligned> Array4fMap;
+  typedef const Eigen::Map<const Eigen::Array4f, Eigen::Aligned> Array4fMapConst;
+  typedef Eigen::Map<Eigen::Vector3f> Vector3fMap;
+  typedef const Eigen::Map<const Eigen::Vector3f> Vector3fMapConst;
+  typedef Eigen::Map<Eigen::Vector4f, Eigen::Aligned> Vector4fMap;
+  typedef const Eigen::Map<const Eigen::Vector4f, Eigen::Aligned> Vector4fMapConst;
+
+  typedef Eigen::Matrix<uint8_t, 3, 1> Vector3c;
+  typedef Eigen::Map<Vector3c> Vector3cMap;
+  typedef const Eigen::Map<const Vector3c> Vector3cMapConst;
+  typedef Eigen::Matrix<uint8_t, 4, 1> Vector4c;
+  typedef Eigen::Map<Vector4c, Eigen::Aligned> Vector4cMap;
+  typedef const Eigen::Map<const Vector4c, Eigen::Aligned> Vector4cMapConst;
 
 #define PCL_ADD_UNION_POINT4D \
   union EIGEN_ALIGN16 { \
@@ -162,14 +185,14 @@ namespace pcl
   };
 
 #define PCL_ADD_EIGEN_MAPS_POINT4D \
-  inline Eigen::Map<Eigen::Vector3f> getVector3fMap () { return (Eigen::Vector3f::Map (data)); } \
-  inline const Eigen::Map<const Eigen::Vector3f> getVector3fMap () const { return (Eigen::Vector3f::Map (data)); } \
-  inline Eigen::Map<Eigen::Vector4f, Eigen::Aligned> getVector4fMap () { return (Eigen::Vector4f::MapAligned (data)); } \
-  inline const Eigen::Map<const Eigen::Vector4f, Eigen::Aligned> getVector4fMap () const { return (Eigen::Vector4f::MapAligned (data)); } \
-  inline Eigen::Map<Eigen::Array3f> getArray3fMap () { return (Eigen::Array3f::Map (data)); } \
-  inline const Eigen::Map<const Eigen::Array3f> getArray3fMap () const { return (Eigen::Array3f::Map (data)); } \
-  inline Eigen::Map<Eigen::Array4f, Eigen::Aligned> getArray4fMap () { return (Eigen::Array4f::MapAligned (data)); } \
-  inline const Eigen::Map<const Eigen::Array4f, Eigen::Aligned> getArray4fMap () const { return (Eigen::Array4f::MapAligned (data)); }
+  inline pcl::Vector3fMap getVector3fMap () { return (pcl::Vector3fMap (data)); } \
+  inline pcl::Vector3fMapConst getVector3fMap () const { return (pcl::Vector3fMapConst (data)); } \
+  inline pcl::Vector4fMap getVector4fMap () { return (pcl::Vector4fMap (data)); } \
+  inline pcl::Vector4fMapConst getVector4fMap () const { return (pcl::Vector4fMapConst (data)); } \
+  inline pcl::Array3fMap getArray3fMap () { return (pcl::Array3fMap (data)); } \
+  inline pcl::Array3fMapConst getArray3fMap () const { return (pcl::Array3fMapConst (data)); } \
+  inline pcl::Array4fMap getArray4fMap () { return (pcl::Array4fMap (data)); } \
+  inline pcl::Array4fMapConst getArray4fMap () const { return (pcl::Array4fMapConst (data)); }
 
 #define PCL_ADD_POINT4D \
   PCL_ADD_UNION_POINT4D \
@@ -187,10 +210,10 @@ namespace pcl
   };
 
 #define PCL_ADD_EIGEN_MAPS_NORMAL4D \
-  inline Eigen::Map<Eigen::Vector3f> getNormalVector3fMap () { return (Eigen::Vector3f::Map (data_n)); } \
-  inline const Eigen::Map<const Eigen::Vector3f> getNormalVector3fMap () const { return (Eigen::Vector3f::Map (data_n)); } \
-  inline Eigen::Map<Eigen::Vector4f, Eigen::Aligned> getNormalVector4fMap () { return (Eigen::Vector4f::MapAligned (data_n)); } \
-  inline const Eigen::Map<const Eigen::Vector4f, Eigen::Aligned> getNormalVector4fMap () const { return (Eigen::Vector4f::MapAligned (data_n)); }
+  inline pcl::Vector3fMap getNormalVector3fMap () { return (pcl::Vector3fMap (data_n)); } \
+  inline pcl::Vector3fMapConst getNormalVector3fMap () const { return (pcl::Vector3fMapConst (data_n)); } \
+  inline pcl::Vector4fMap getNormalVector4fMap () { return (pcl::Vector4fMap (data_n)); } \
+  inline pcl::Vector4fMapConst getNormalVector4fMap () const { return (pcl::Vector4fMapConst (data_n)); }
 
 #define PCL_ADD_NORMAL4D \
   PCL_ADD_UNION_NORMAL4D \
@@ -220,10 +243,10 @@ namespace pcl
   inline const Eigen::Vector4i getRGBVector4i () const { return (Eigen::Vector4i (r, g, b, a)); } \
   inline Eigen::Vector4i getRGBAVector4i () { return (Eigen::Vector4i (r, g, b, a)); } \
   inline const Eigen::Vector4i getRGBAVector4i () const { return (Eigen::Vector4i (r, g, b, a)); } \
-  inline Vector3cMap getBGRVector3cMap () { return (Vector3cMap (reinterpret_cast<uint8_t*> (&rgba))); } \
-  inline Vector3cMapConst getBGRVector3cMap () const { return (Vector3cMapConst (reinterpret_cast<const uint8_t*> (&rgba))); } \
-  inline Vector4cMap getBGRAVector4cMap () { return (Vector4cMap (reinterpret_cast<uint8_t*> (&rgba))); } \
-  inline Vector4cMapConst getBGRAVector4cMap () const { return (Vector4cMapConst (reinterpret_cast<const uint8_t*> (&rgba))); }
+  inline pcl::Vector3cMap getBGRVector3cMap () { return (pcl::Vector3cMap (reinterpret_cast<uint8_t*> (&rgba))); } \
+  inline pcl::Vector3cMapConst getBGRVector3cMap () const { return (pcl::Vector3cMapConst (reinterpret_cast<const uint8_t*> (&rgba))); } \
+  inline pcl::Vector4cMap getBGRAVector4cMap () { return (pcl::Vector4cMap (reinterpret_cast<uint8_t*> (&rgba))); } \
+  inline pcl::Vector4cMapConst getBGRAVector4cMap () const { return (pcl::Vector4cMapConst (reinterpret_cast<const uint8_t*> (&rgba))); }
 
 #define PCL_ADD_RGB \
   PCL_ADD_UNION_RGB \
@@ -246,22 +269,6 @@ namespace pcl
     { \
         uint32_t intensity; \
     }; \
-
-  typedef Eigen::Map<Eigen::Array3f> Array3fMap;
-  typedef const Eigen::Map<const Eigen::Array3f> Array3fMapConst;
-  typedef Eigen::Map<Eigen::Array4f, Eigen::Aligned> Array4fMap;
-  typedef const Eigen::Map<const Eigen::Array4f, Eigen::Aligned> Array4fMapConst;
-  typedef Eigen::Map<Eigen::Vector3f> Vector3fMap;
-  typedef const Eigen::Map<const Eigen::Vector3f> Vector3fMapConst;
-  typedef Eigen::Map<Eigen::Vector4f, Eigen::Aligned> Vector4fMap;
-  typedef const Eigen::Map<const Eigen::Vector4f, Eigen::Aligned> Vector4fMapConst;
-
-  typedef Eigen::Matrix<uint8_t, 3, 1> Vector3c;
-  typedef Eigen::Map<Vector3c> Vector3cMap;
-  typedef const Eigen::Map<const Vector3c> Vector3cMapConst;
-  typedef Eigen::Matrix<uint8_t, 4, 1> Vector4c;
-  typedef Eigen::Map<Vector4c, Eigen::Aligned> Vector4cMap;
-  typedef const Eigen::Map<const Vector4c, Eigen::Aligned> Vector4cMapConst;
 
 
   struct _PointXYZ
@@ -975,10 +982,56 @@ namespace pcl
       data[3] = 1.0f;
       normal_x = normal_y = normal_z = data_n[3] = 0.0f;
       intensity = 0.0f;
+      curvature = 0;
     }
   
     friend std::ostream& operator << (std::ostream& os, const PointXYZINormal& p);
   };
+
+//----
+  struct EIGEN_ALIGN16 _PointXYZLNormal
+  {
+    PCL_ADD_POINT4D; // This adds the members x,y,z which can also be accessed using the point (which is float[4])
+    PCL_ADD_NORMAL4D; // This adds the member normal[3] which can also be accessed using the point (which is float[4])
+    union
+    {
+      struct
+      {
+        uint32_t label;
+        float curvature;
+      };
+      float data_c[4];
+    };
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  };
+
+  PCL_EXPORTS std::ostream& operator << (std::ostream& os, const PointXYZLNormal& p);
+  /** \brief A point structure representing Euclidean xyz coordinates, a label, together with normal coordinates and the surface curvature estimate.
+    * \ingroup common
+    */
+  struct PointXYZLNormal : public _PointXYZLNormal
+  {
+    inline PointXYZLNormal (const _PointXYZLNormal &p)
+    {
+      x = p.x; y = p.y; z = p.z; data[3] = 1.0f;
+      normal_x = p.normal_x; normal_y = p.normal_y; normal_z = p.normal_z; data_n[3] = 0.0f;
+      curvature = p.curvature;
+      label = p.label;
+    }
+
+    inline PointXYZLNormal ()
+    {
+      x = y = z = 0.0f;
+      data[3] = 1.0f;
+      normal_x = normal_y = normal_z = data_n[3] = 0.0f;
+      label = 0;
+      curvature = 0;
+    }
+
+    friend std::ostream& operator << (std::ostream& os, const PointXYZLNormal& p);
+  };
+
+//  ---
 
 
   struct EIGEN_ALIGN16 _PointWithRange
@@ -1205,6 +1258,18 @@ namespace pcl
     friend std::ostream& operator << (std::ostream& os, const ShapeContext1980& p);
   };
 
+  PCL_EXPORTS std::ostream& operator << (std::ostream& os, const UniqueShapeContext1960& p);
+  /** \brief A point structure representing a Unique Shape Context.
+    * \ingroup common
+    */
+  struct UniqueShapeContext1960
+  {
+    float descriptor[1960];
+    float rf[9];
+    static int descriptorSize () { return 1960; }
+
+    friend std::ostream& operator << (std::ostream& os, const UniqueShapeContext1960& p);
+  };
 
   PCL_EXPORTS std::ostream& operator << (std::ostream& os, const SHOT352& p);
   /** \brief A point structure representing the generic Signature of Histograms of OrienTations (SHOT) - shape only.
@@ -1304,6 +1369,18 @@ namespace pcl
     static int descriptorSize () { return 308; }
 
     friend std::ostream& operator << (std::ostream& os, const VFHSignature308& p);
+  };
+  
+  PCL_EXPORTS std::ostream& operator << (std::ostream& os, const GRSDSignature21& p);
+  /** \brief A point structure representing the Global Radius-based Surface Descriptor (GRSD).
+    * \ingroup common
+    */
+  struct GRSDSignature21
+  {
+    float histogram[21];
+    static int descriptorSize () { return 21; }
+
+    friend std::ostream& operator << (std::ostream& os, const GRSDSignature21& p);
   };
 
   PCL_EXPORTS std::ostream& operator << (std::ostream& os, const BRISKSignature512& p);

@@ -42,6 +42,7 @@
 #include <iostream>
 #include <map>
 #include <vector>
+#include <pcl/pcl_exports.h>
 #include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
@@ -195,7 +196,7 @@ namespace pcl
      * \author Kripasindhu Sarkar
      * \ingroup visualization
      */
-    class PCLPainter2D: public vtkContextItem
+    class PCL_EXPORTS PCLPainter2D: public vtkContextItem
     {
     public:
 
@@ -204,7 +205,7 @@ namespace pcl
       /** \brief Constructor of the class
        */
       PCLPainter2D (char const * name = "PCLPainter2D");
-      vtkTypeRevisionMacro (PCLPainter2D, vtkContextItem);
+      vtkTypeMacro (PCLPainter2D, vtkContextItem);
 
       /** \brief Paint event for the chart, called whenever the chart needs to be drawn
        *  \param[in] painter Name of the window

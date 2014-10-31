@@ -165,6 +165,11 @@ namespace pcl
     */
   struct PointXYZINormal;
 
+  /** \brief Members: float x, y, z, label, normal[3], curvature
+    * \ingroup common
+    */
+  struct PointXYZLNormal;
+
   /** \brief Members: float x, y, z (union with float point[4]), range
     * \ingroup common
     */
@@ -215,6 +220,11 @@ namespace pcl
     */
   struct ShapeContext1980;
 
+  /** \brief Members: float descriptor[1960], rf[9]
+    * \ingroup common
+    */
+  struct UniqueShapeContext1960;
+
   /** \brief Members: float pfh[125]
     * \ingroup common
     */
@@ -254,6 +264,11 @@ namespace pcl
     * \ingroup common
     */
   struct VFHSignature308;
+  
+  /** \brief Members: float grsd[21]
+    * \ingroup common
+    */
+  struct GRSDSignature21;
   
   /** \brief Members: float esf[640]
     * \ingroup common
@@ -470,6 +485,16 @@ POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::PointXYZINormal,
     (float, normal_z, normal_z)
     (float, curvature, curvature)
 )
+POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::PointXYZLNormal,
+    (float, x, x)
+    (float, y, y)
+    (float, z, z)
+    (uint32_t, label, label)
+    (float, normal_x, normal_x)
+    (float, normal_y, normal_y)
+    (float, normal_z, normal_z)
+    (float, curvature, curvature)
+)
 POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::PointWithRange,
     (float, x, x)
     (float, y, y)
@@ -560,6 +585,11 @@ POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::ShapeContext1980,
     (float[9], rf, rf)
 )
 
+POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::UniqueShapeContext1960,
+    (float[1960], descriptor, shape_context)
+    (float[9], rf, rf)
+)
+
 POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::SHOT352,
     (float[352], descriptor, shot)
     (float[9], rf, rf)
@@ -582,6 +612,10 @@ POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::BRISKSignature512,
 
 POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::VFHSignature308,
     (float[308], histogram, vfh)
+)
+
+POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::GRSDSignature21,
+    (float[21], histogram, grsd)
 )
 
 POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::ESFSignature640,

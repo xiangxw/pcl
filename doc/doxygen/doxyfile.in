@@ -27,7 +27,7 @@ INLINE_INHERITED_MEMB  = NO
 FULL_PATH_NAMES        = YES
 STRIP_FROM_PATH        = 
 STRIP_FROM_INC_PATH    = @STRIPPED_HEADERS@
-SHORT_NAMES            = YES
+SHORT_NAMES            = @SHORT_NAMES@
 JAVADOC_AUTOBRIEF      = YES
 QT_AUTOBRIEF           = NO
 MULTILINE_CPP_IS_BRIEF = NO
@@ -278,6 +278,7 @@ INCLUDE_FILE_PATTERNS  = *.h
 #PREDEFINED            = protected=private \
 PREDEFINED =           = "HAVE_QHULL=1" \
                          "HAVE_OPENNI=1" \
+                         "HAVE_ENSENSO=1" \
                          "PCL_DEPRECATED(x)="
 EXPAND_AS_DEFINED      = 
 SKIP_FUNCTION_MACROS   = YES

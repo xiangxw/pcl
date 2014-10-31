@@ -171,7 +171,22 @@ Basic Usage
              This tutorial shows you how to get your PCL as a project in Eclipse.
      ======  ======
 
-     .. |mi_8| image:: images/pcl_logo.png
+     .. |mi_8| image:: images/pcl_with_eclipse/eclipse.png
+               :height: 100px
+
+  * :ref:`generate_local_doc`
+
+     =======  ======
+     |mi_11|  Title: **Generate a local documentation for PCL**
+
+              Author: *Victor Lamoine*
+
+              Compatibility: PCL > 1.0
+
+              This tutorial shows you how to generate and use a local documentation for PCL.
+     =======  ======
+
+     .. |mi_11| image:: images/pcl_logo.png
                :height: 75px
 
   * :ref:`qt_visualizer`
@@ -586,6 +601,21 @@ I/O
      .. |i_o6| image:: images/dinast_cyclopes.png
                :height: 100px
 
+  * :ref:`ensenso_cameras`
+
+     ======  ======
+     |i_o7|  Title: **Grabbing point clouds from Ensenso cameras**
+
+             Author: *Victor Lamoine*
+
+             Compatibility: >= PCL 1.8.0
+
+             In this tutorial, we will learn how to acquire point cloud data from an IDS-Imaging Ensenso camera.
+     ======  ======
+
+     .. |i_o7| image:: images/ensenso/ids.png
+               :height: 165px
+
 
 .. _keypoints_tutorial:
 
@@ -745,6 +775,21 @@ Recognition
      ======  ======
 
      .. |rc_2| image:: images/implicit_shape_model.png
+               :height: 100px
+
+  * :ref:`global_hypothesis_verification`
+
+     ======  ======
+     |rc_3|  Title: **Hypothesis Verification for 3D Object Recognition**
+
+             Author: *Daniele De Gregorio, Federico Tombari*
+
+             Compatibility: > PCL 1.7
+
+             This tutorial aims at explaining how to do 3D object recognition in clutter by verifying model hypotheses in cluttered and  heavily occluded 3D scenes.
+     ======  ======
+
+     .. |rc_3| image:: images/global_hypothesis_verification/multiple.png
                :height: 100px
 
 .. _registration_tutorial:
@@ -1035,6 +1080,20 @@ Segmentation
      .. |se_10| image:: images/progressive_morphological_filter.png
                :height: 100px
 
+  * :ref:`model_outlier_removal`
+
+     =======  ======
+     |se_11|  Title: **Model outlier removal**
+
+              Author: *Timo Häckel*
+
+              Compatibility: >= PCL 1.7.2
+
+              This tutorial describes how to extract points from a point cloud using SAC models
+     =======  ======
+
+     .. |se_11| image:: images/pcl_logo.png
+               :height: 75px
                
 .. _surface_tutorial:
 
@@ -1166,6 +1225,21 @@ Visualization
 
      .. |vi_4| image:: images/pcl_plotter_comprational.png
                :height: 100px               
+
+  * :ref:`visualization`
+
+     ======  ======
+     |vi_5|  Title: **PCL Visualization overview**
+
+             Author: *Radu B. Rusu*
+
+             Compatibility: >= PCL 1.0
+
+             This tutorial will give an overview on the usage of the PCL visualization tools.
+     ======  ======
+
+     .. |vi_5| image:: images/visualization_small.png
+               :height: 120px
 
 .. _applications_tutorial:
 

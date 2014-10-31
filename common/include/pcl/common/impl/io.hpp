@@ -120,6 +120,9 @@ pcl::copyPointCloud (const pcl::PointCloud<PointInT> &cloud_in,
   cloud_out.sensor_origin_ = cloud_in.sensor_origin_;
   cloud_out.points.resize (cloud_in.points.size ());
 
+  if (cloud_in.points.size () == 0)
+    return;
+
   if (isSamePointType<PointInT, PointOutT> ())
     // Copy the whole memory block
     memcpy (&cloud_out.points[0], &cloud_in.points[0], cloud_in.points.size () * sizeof (PointInT));
@@ -403,7 +406,7 @@ pcl::copyPointCloud (const pcl::PointCloud<PointT> &cloud_in, pcl::PointCloud<Po
       const PointT* in = &(cloud_in.points[0]);
       PointT* out = &(cloud_out.points[0]);
       PointT* out_inner = out + cloud_out.width*top + left;
-      for (int i = 0; i < cloud_in.height; i++, out_inner += cloud_out.width, in += cloud_in.width)
+      for (uint32_t i = 0; i < cloud_in.height; i++, out_inner += cloud_out.width, in += cloud_in.width)
       {
         if (out_inner != in)
           memcpy (out_inner, in, cloud_in.width * sizeof (PointT));
@@ -430,7 +433,7 @@ pcl::copyPointCloud (const pcl::PointCloud<PointT> &cloud_in, pcl::PointCloud<Po
           PointT* out = &(cloud_out.points[0]);
           PointT* out_inner = out + cloud_out.width*top + left;
 
-          for (int i = 0; i < cloud_in.height; i++, out_inner += cloud_out.width, in += cloud_in.width)
+          for (uint32_t i = 0; i < cloud_in.height; i++, out_inner += cloud_out.width, in += cloud_in.width)
           {
             if (out_inner != in)
               memcpy (out_inner, in, cloud_in.width * sizeof (PointT));
@@ -473,7 +476,7 @@ pcl::copyPointCloud (const pcl::PointCloud<PointT> &cloud_in, pcl::PointCloud<Po
         PointT* out = &(cloud_out.points[0]);
         PointT* out_inner = out + cloud_out.width*top + left;
 
-        for (int i = 0; i < cloud_in.height; i++, out_inner += cloud_out.width, in += cloud_in.width)
+        for (uint32_t i = 0; i < cloud_in.height; i++, out_inner += cloud_out.width, in += cloud_in.width)
         {
           if (out_inner != in)
             memcpy (out_inner, in, cloud_in.width * sizeof (PointT));
