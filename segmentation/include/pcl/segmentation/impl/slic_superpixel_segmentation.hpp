@@ -48,31 +48,38 @@ template <typename PointT, typename PointLT> void
 pcl::SLICSuperpixelSegmentation<PointT, PointLT>::segment (PointCloudL &labels, std::vector<pcl::PointIndices> &label_indices)
 {
   // Initialize compute
+  std::cout << "initCompute..." << std::endl;
   if (!initCompute ())
   {
     PCL_ERROR ("[segment] Initialize compute failed!\n");
     return;
   }
+  std::cout << "mean xyz: " << mean_xyz_dist_ << std::endl;
 
   // Seeding
+  std::cout << "seeding..." << std::endl;
   seeding ();
 
   // Refine seeds
   if (refine_seeds_)
   {
+    std::cout << "refineSeeds..." << std::endl;
     refineSeeds ();
   }
 
   // Iterative clustering
+  std::cout << "iterativeCluster..." << std::endl;
   iterativeCluster (labels, label_indices);
 
   // Enfore connectivity
   if (enfore_connectivity_)
   {
+    std::cout << "enforeConnectivity..." << std::endl;
     enforeConnectivity (labels, label_indices);
   }
 
   // Deinit compute
+  std::cout << "deinitCompute..." << std::endl;
   deinitCompute ();
 }
 
@@ -180,19 +187,21 @@ pcl::SLICSuperpixelSegmentation<PointT, PointLT>::initCompute ()
   count = 0;
   for (size_t i = 0; i < input_->size (); ++i)
   {
-    x = i % input_->width;
-    // For each point, calculate distance with points within a 2*step_ * 2*step_ sized rect
-    for (int row = 0; row < rows; ++row)
-    {
-      index = i + (row - step_) * input_->width - x;
-      for (int col = 0; col < cols; ++col)
+    if (pcl::isFinite (input_->points[i])) {
+      x = i % input_->width;
+      // For each point, calculate distance with points within a 2*step_ * 2*step_ sized rect
+      for (int row = 0; row < rows; ++row)
       {
-        if (index >= 0 && index < input_->size () && pcl::isFinite (input_->points[i]))
+        index = i + (row - step_) * input_->width - x;
+        for (int col = 0; col < cols; ++col)
         {
-          sum += calculateSpatialDistance (i, index);
-          ++count;
+          if (index >= 0 && index < input_->size () && pcl::isFinite (input_->points[index]))
+          {
+            sum += calculateSpatialDistance (i, index);
+            ++count;
+          }
+          ++index;
         }
-        ++index;
       }
     }
   }
